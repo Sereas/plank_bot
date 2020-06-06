@@ -8,7 +8,7 @@ from threading import Thread
 from time import sleep
 from classes import User
 
-bot = telebot.TeleBot('1088985217:AAHXJF3KofCRj1rkgpRURce8pYl4Ow1Zlu8')
+bot = telebot.TeleBot('974143054:AAG9nHXBYzdZiJRCGX-ongQ67Tgro4a-KyI')
 
 '''# proxy
 login = 'olegdylevich'

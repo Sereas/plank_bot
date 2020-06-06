@@ -21,8 +21,8 @@ telebot.apihelper.proxy = {
   'https': 'https://{}:{}@{}:{}'.format(login, pwd, ip, port)
 }'''
 
-users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
+users_db_path = '~/plank_bot/users_db.h5'
+logs_db_path = '~/plank_bot/logs_db.h5'
 
 print('Bot started')
 
@@ -147,11 +147,7 @@ def handle_docs_video(message):
                          'Bro, you already planked today! You can stop)')
 
 
-while True:
-    try:
-        bot.polling()
-    except:
-        pass
+bot.polling()
 
 
 

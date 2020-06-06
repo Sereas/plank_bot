@@ -10,7 +10,7 @@ from classes import User
 
 bot = telebot.TeleBot('1088985217:AAHXJF3KofCRj1rkgpRURce8pYl4Ow1Zlu8')
 
-# proxy
+'''# proxy
 login = 'olegdylevich'
 pwd = 'W1o7SqQ'
 ip = '89.191.230.201'
@@ -19,10 +19,12 @@ port = '65233'
 
 telebot.apihelper.proxy = {
   'https': 'https://{}:{}@{}:{}'.format(login, pwd, ip, port)
-}
+}'''
 
 users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
 logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
+
+print('Bot started')
 
 
 def schedule_checker():

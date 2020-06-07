@@ -3,9 +3,12 @@ from datetime import timedelta
 import pandas as pd
 
 
-min_plank_time = 30
-users_db_path = '~/plank_bot/users_db.h5'
-logs_db_path = '~/plank_bot/logs_db.h5'
+min_plank_time = 135
+'''users_db_path = '~/plank_bot/users_db.h5'
+logs_db_path = '~/plank_bot/logs_db.h5' '''
+
+users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
+logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
 
 
 class User:
@@ -19,6 +22,7 @@ class User:
         self.increase_day = datetime.datetime.today().date() + timedelta(days=14)
         self.times_missed = 0
         self.planked_today = False
+        self.vacation = False
 
     def load(self):
         users = pd.read_hdf(users_db_path, key='df')
@@ -31,6 +35,7 @@ class User:
             self.time_increase = user_line['time_increase'].iloc[0]
             self.increase_in_days = user_line['increase_in_days'].iloc[0]
             self.increase_day = user_line['increase_day'].iloc[0]
+            self.vacation = user_line['vacation'].iloc[0]
             print('Loaded existing user')
             self.describe()
         else:
@@ -47,7 +52,8 @@ class User:
                          'time_increase': self.time_increase,
                          'increase_in_days': self.increase_in_days,
                          'increase_day': self.increase_day,
-                         'times_missed': self.times_missed})
+                         'times_missed': self.times_missed,
+                         'vacation': self.vacation})
         users_df = users_df.append(row, ignore_index=True)
         users_df.to_hdf(users_db_path, key='df'
 )
@@ -67,6 +73,8 @@ class User:
                      'increase_in_days'] = self.increase_in_days
         users_df.loc[(users_df['user_id'] == self.user_id) & (users_df['chat_id'] == self.chat_id),
                      'increase_day'] = self.increase_day
+        users_df.loc[(users_df['user_id'] == self.user_id) & (users_df['chat_id'] == self.chat_id),
+                     'vacation'] = self.vacation
         '''save'''
         users_df.to_hdf(users_db_path, key='df')
 
@@ -79,6 +87,7 @@ class User:
         print('Increase every # of days:', self.increase_in_days)
         print('Next increase:', self.increase_day)
         print('Times missed:', self.times_missed)
+        print('Vacation:', self.vacation)
 
     def check_if_user_exists(self):
         self.load()
@@ -108,9 +117,7 @@ class User:
 
     def change_increase_date(self, date=None):
         if date is None:
-            print('Before changes ', self.increase_day)
             self.increase_day = self.increase_day + timedelta(days=self.increase_in_days)
-            print('After changes ', self.increase_day)
             self.amend()
             self.describe()
         else:
@@ -125,3 +132,19 @@ class User:
         else:
             self.current_time = int(time)
             self.amend()
+
+    def change_time_increase(self, time):
+        self.time_increase = int(time)
+        self.amend()
+
+    def change_increase_in_days(self, days):
+        self.increase_in_days = int(days)
+        self.amend()
+
+    def change_vacation(self, value):
+        if value == 'True':
+            self.vacation = True
+        else:
+            self.vacation = False
+        self.amend()
+

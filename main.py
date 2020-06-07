@@ -19,10 +19,13 @@ port = '65233'
 
 telebot.apihelper.proxy = {
   'https': 'https://{}:{}@{}:{}'.format(login, pwd, ip, port)
-}'''
+}
 
 users_db_path = '~/plank_bot/users_db.h5'
-logs_db_path = '~/plank_bot/logs_db.h5'
+logs_db_path = '~/plank_bot/logs_db.h5' '''
+
+users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
+logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
 
 print('Bot started')
 
@@ -41,9 +44,10 @@ def send_daily_stats():
         for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
             check_user = User(user_id=user, chat_id=chat)
             check_user.check_if_user_exists()
-            check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=1)).strftime("%d %b %Y"))
-            message = message + str(check_user.name) + ' - ' + str(check_user.planked_today) +\
-                      ' ' + str(datetime.datetime.today().date().strftime("%d %b %Y")) + ' \n '
+            print('Checker', check_user.vacation is False)
+            if check_user.vacation is False:
+                check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=1)).strftime("%d %b %Y"))
+                message = message + str(check_user.name) + ' - ' + str(check_user.planked_today) + ' \n '
 
         bot.send_message(chat, message)
 
@@ -68,8 +72,8 @@ def check_increase_date():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("05:00").do(send_daily_stats)
-    schedule.every().day.at("13:15").do(check_increase_date)
+    schedule.every().day.at("02:00").do(send_daily_stats)
+    schedule.every().day.at("02:05").do(check_increase_date)
     Thread(target=schedule_checker).start()
 
 
@@ -85,10 +89,45 @@ def start_message(message):
 
 @bot.message_handler(commands=['set_min_plank_time'])
 def start_message(message):
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    '''markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     markup.add('Everybody', 'Me', 'Other user')
-    msg = bot.reply_to(message, 'Who do you want set up time for?', reply_markup=markup)
-    bot.register_next_step_handler(msg, find_users_to_set_up_time_to_step)
+    msg = bot.reply_to(message, 'Who do you want set up time for?', reply_markup=markup)'''
+    msg = bot.reply_to(message, 'Feeling brave today?) Ok, Please specify new time in seconds please.')
+    bot.register_next_step_handler(msg, set_up_time_step)
+
+
+@bot.message_handler(commands=['my_stats'])
+def start_message(message):
+    user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+    user.check_if_user_exists()
+    bot.send_message(message.chat.id, 'Your current statistics: \n'
+                                      'Name: ' + str(user.name) + ' \n'
+                                      'Current minimum planking time: ' + str(user.current_time) + ' seconds. \n'
+                                      'Time increase: ' + str(user.time_increase) + ' seconds \n'
+                                      'Increase in days: ' + str(user.increase_in_days) + ' days \n'
+                                      'Next increase on: ' + str(user.increase_day) + '\n'
+                                      'Vacation: ' + str(user.vacation))
+
+
+@bot.message_handler(commands=['set_increase_time'])
+def start_message(message):
+    msg = bot.reply_to(message, 'This is the amount in seconds your time will increase on next increase date. '
+                                'Choose wisely')
+    bot.register_next_step_handler(msg, set_up_time_increase_step)
+
+
+@bot.message_handler(commands=['set_increase_periods'])
+def start_message(message):
+    msg = bot.reply_to(message, 'This is the amount in days until your next next increase day. '
+                                'Does not change nearest increase day))')
+    bot.register_next_step_handler(msg, set_up_increase_periods_step)
+
+
+@bot.message_handler(commands=['vacation_mode'])
+def start_message(message):
+    msg = bot.reply_to(message, 'Vacation is always great! Have fun, but do not forget to plank regularly)'
+                                ' Please write True or False')
+    bot.register_next_step_handler(msg, set_up_vacation_step)
 
 
 def find_users_to_set_up_time_to_step(message):
@@ -103,24 +142,78 @@ def find_users_to_set_up_time_to_step(message):
 
 
 def set_up_time_step(message):
-    print('you are in step 2')
-    for entity in message.entities:
-        print(entity)
+    try:
+        var = int(message.text)
+
+        if isinstance(var, int):
+            user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+            user.check_if_user_exists()
+            old_time = user.current_time
+            user.change_current_time(time=message.text)
+            bot.send_message(message.chat.id,
+                             'Done. Your old time was ' + str(old_time) + ' seconds . Your new time is ' +
+                             str(user.current_time) + ' seconds')
+
+    except ValueError:
+        bot.send_message(message.chat.id, 'You idiot, it is not an integer! Try again, moron')
+
+
+def set_up_time_increase_step(message):
+    try:
+        var = int(message.text)
+
+        if isinstance(var, int):
+            user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+            user.check_if_user_exists()
+            old_time = user.time_increase
+            user.change_time_increase(time=message.text)
+            bot.send_message(message.chat.id,
+                             'Done. Your old increase time was ' + str(old_time) + ' seconds . Your new increase time is ' +
+                             str(user.time_increase) + ' seconds')
+
+    except ValueError:
+        bot.send_message(message.chat.id, 'You idiot, it is not an integer! Try again, moron')
+
+
+def set_up_increase_periods_step(message):
+    try:
+        var = int(message.text)
+
+        if isinstance(var, int):
+            user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+            user.check_if_user_exists()
+            old_time = user.increase_in_days
+            user.change_increase_in_days(days=message.text)
+            bot.send_message(message.chat.id,
+                             'Done. Your old increase in days was ' + str(old_time) + ' days. Your new increase in days is ' +
+                             str(user.increase_in_days) + ' days')
+
+    except ValueError:
+        bot.send_message(message.chat.id, 'You idiot, it is not an integer! Try again, moron')
+
+
+def set_up_vacation_step(message):
+    user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+    user.check_if_user_exists()
+    user.change_vacation(value=message.text)
+    bot.send_message(message.chat.id, 'Done')
 
 
 @bot.message_handler(content_types=['video'])
 def handle_docs_video(message):
     user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
     user.check_if_user_exists()
+    print('Server time ', datetime.datetime.today())
 
-    if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 5:
+    if (int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2 &
+            int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) < 20):
         user.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
     else:
         user.check_planked_today((datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
 
     if user.planked_today is False:
-        if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 5:
-
+        if (int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2 &
+                int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) < 20):
             if message.video.duration >= user.current_time:
                 bot.send_message(message.chat.id, 'Hooray! ' + message.from_user.first_name + ' planked on, '
                              + str(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))+'! Good job =)')

@@ -205,15 +205,13 @@ def handle_docs_video(message):
     user.check_if_user_exists()
     print('Server time ', datetime.datetime.today())
 
-    if (int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2 &
-            int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) < 20):
+    if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
         user.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
     else:
         user.check_planked_today((datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
 
     if user.planked_today is False:
-        if (int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2 &
-                int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) < 20):
+        if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
             if message.video.duration >= user.current_time:
                 bot.send_message(message.chat.id, 'Hooray! ' + message.from_user.first_name + ' planked on, '
                              + str(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))+'! Good job =)')

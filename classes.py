@@ -4,11 +4,11 @@ import pandas as pd
 
 
 min_plank_time = 135
-'''users_db_path = '~/plank_bot/users_db.h5'
-logs_db_path = '~/plank_bot/logs_db.h5' '''
+users_db_path = '~/plank_bot/users_db.h5'
+logs_db_path = '~/plank_bot/logs_db.h5'
 
-users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
+'''users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
+logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5' '''
 
 
 class User:

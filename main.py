@@ -24,10 +24,11 @@ telebot.apihelper.proxy = {
 users_db_path = '~/plank_bot/users_db.h5'
 logs_db_path = '~/plank_bot/logs_db.h5'
 
-'''users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5' '''
+# users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
+# logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
 
 print('Bot started')
+global user_to_change
 
 
 def schedule_checker():
@@ -125,9 +126,53 @@ def start_message(message):
 
 @bot.message_handler(commands=['vacation_mode'])
 def start_message(message):
-    msg = bot.reply_to(message, 'Vacation is always great! Have fun, but do not forget to plank regularly)'
-                                ' Please write True or False')
+    users = load_chat_users(chat_id=message.chat.id)
+    print(users)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    for user in users:
+        markup.add(user)
+    msg = bot.reply_to(message, 'Ok, who is going on vacation??', reply_markup=markup)
     bot.register_next_step_handler(msg, set_up_vacation_step)
+
+
+@bot.message_handler(commands=['planked_with'])
+def start_message(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    print(users)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    for user in users:
+        markup.add(user)
+    msg = bot.reply_to(message, 'Planking together is always more fun ;) Who did you plank with?', reply_markup=markup)
+    bot.register_next_step_handler(msg, set_up_planked_with_step)
+
+
+def set_up_planked_with_step(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    user_to_change_plank = User(user_id=users[message.text], chat_id=message.chat.id)
+    user_to_change_plank.check_if_user_exists()
+    user_to_check = User(user_id=message.from_user.id, chat_id=message.chat.id)
+    user_to_check.check_if_user_exists()
+
+    if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
+        user_to_check.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+        if user_to_check.planked_today is True:
+            bot.send_message(message.chat.id,
+                             'Great! Hope you and ' + str(user_to_change.name) + ' had a wonderful time!')
+            user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+        else:
+            bot.send_message(message.chat.id,
+                             'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
+    else:
+        user_to_check.check_planked_today(
+            (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+        if user_to_check.planked_today is True:
+            bot.send_message(message.chat.id,
+                             'Great! Hope you and ' + str(user_to_change.name) + ' had a wonderful time!')
+            user_to_change_plank.write_planked_today(
+                (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+        else:
+            bot.send_message(message.chat.id,
+                             'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
 
 
 def find_users_to_set_up_time_to_step(message):
@@ -193,10 +238,33 @@ def set_up_increase_periods_step(message):
 
 
 def set_up_vacation_step(message):
-    user = User(user_id=message.from_user.id, chat_id=message.chat.id, name=message.from_user.first_name)
+    global user_to_change
+    user_to_change = message.text
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    markup.add('True', 'False')
+    bot.send_message(message.chat.id, 'Ok, will amend vacation status for ' + str(user_to_change) + '.')
+    msg = bot.reply_to(message,  'Which status is it?', reply_markup=markup)
+    bot.register_next_step_handler(msg, set_up_vacation_step2)
+
+
+def set_up_vacation_step2(message):
+    global user_to_change
+    users = load_chat_users(chat_id=message.chat.id)
+    user = User(user_id=users[user_to_change], chat_id=message.chat.id)
     user.check_if_user_exists()
     user.change_vacation(value=message.text)
     bot.send_message(message.chat.id, 'Done')
+    user_to_change = ""
+
+
+def load_chat_users(chat_id):
+    users_df = pd.read_hdf(users_db_path, key='df')
+    chat_df = users_df.loc[users_df['chat_id'] == chat_id]
+    users_dict = {}
+    for user in chat_df['user_id']:
+        user_line = chat_df.loc[chat_df['user_id'] == user]
+        users_dict[user_line['name'].iloc[0]] = user
+    return users_dict
 
 
 @bot.message_handler(content_types=['video'])

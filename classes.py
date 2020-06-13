@@ -4,11 +4,12 @@ import pandas as pd
 
 
 min_plank_time = 135
+
 users_db_path = '~/plank_bot/users_db.h5'
 logs_db_path = '~/plank_bot/logs_db.h5'
 
-'''users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5' '''
+# users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
+# logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
 
 
 class User:
@@ -114,6 +115,9 @@ class User:
                                 (logs_df['date'] == date)]
         if user_line.shape[0] > 0:
             self.planked_today = True
+
+    def get_users_dict(self, chat_id):
+        print('')
 
     def change_increase_date(self, date=None):
         if date is None:

@@ -157,7 +157,7 @@ def set_up_planked_with_step(message):
         user_to_check.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
         if user_to_check.planked_today is True:
             bot.send_message(message.chat.id,
-                             'Great! Hope you and ' + str(user_to_change.name) + ' had a wonderful time!')
+                             'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
             user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
         else:
             bot.send_message(message.chat.id,
@@ -167,7 +167,7 @@ def set_up_planked_with_step(message):
             (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
         if user_to_check.planked_today is True:
             bot.send_message(message.chat.id,
-                             'Great! Hope you and ' + str(user_to_change.name) + ' had a wonderful time!')
+                             'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
             user_to_change_plank.write_planked_today(
                 (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
         else:

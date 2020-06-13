@@ -156,9 +156,14 @@ def set_up_planked_with_step(message):
     if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
         user_to_check.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
         if user_to_check.planked_today is True:
-            bot.send_message(message.chat.id,
-                             'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
-            user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+            user_to_change_plank.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+            if user_to_change_plank.planked_today is False:
+                bot.send_message(message.chat.id,
+                                'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
+                user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+            else:
+                bot.send_message(message.chat.id, 'I see that this user already planked today. '
+                                'Did you get drunk together and you forgot that you have already tagged your friend?)')
         else:
             bot.send_message(message.chat.id,
                              'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
@@ -166,10 +171,16 @@ def set_up_planked_with_step(message):
         user_to_check.check_planked_today(
             (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
         if user_to_check.planked_today is True:
-            bot.send_message(message.chat.id,
-                             'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
-            user_to_change_plank.write_planked_today(
-                (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+            user_to_change_plank.check_planked_today(
+            (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+            if user_to_change_plank.planked_today is False:
+                bot.send_message(message.chat.id,
+                                'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
+                user_to_change_plank.write_planked_today(
+                    (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+            else:
+                bot.send_message(message.chat.id, 'I see that this user already planked today. '
+                                'Did you get drunk together and you forgot that you have already tagged your friend?)')
         else:
             bot.send_message(message.chat.id,
                              'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')

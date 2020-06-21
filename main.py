@@ -93,9 +93,9 @@ def check_for_leavers():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("09:44").do(check_for_leavers)
-    schedule.every().day.at("02:01").do(send_daily_stats)
-    schedule.every().day.at("09:45").do(check_increase_date)
+    schedule.every().day.at("02:01").do(check_for_leavers)
+    schedule.every().day.at("02:02").do(send_daily_stats)
+    schedule.every().day.at("02:05").do(check_increase_date)
     Thread(target=schedule_checker).start()
 
 

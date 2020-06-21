@@ -70,11 +70,12 @@ def check_increase_date():
                         str(check_user.increase_day.strftime("%d %b %Y"))
                 if message != '':
                     bot.send_message(chat, message)
+                    message = ''
 
 
 if __name__ == "__main__":
     schedule.every().day.at("02:00").do(send_daily_stats)
-    schedule.every().day.at("08:08").do(check_increase_date)
+    schedule.every().day.at("08:32").do(check_increase_date)
     Thread(target=schedule_checker).start()
 
 

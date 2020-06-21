@@ -73,6 +73,7 @@ def check_increase_date():
                         str(check_user.increase_day.strftime("%d %b %Y"))
                 if message != '':
                     bot.send_message(chat, message)
+                    message = ''
 
 
 def check_for_leavers():
@@ -92,9 +93,9 @@ def check_for_leavers():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("09:40").do(check_for_leavers)
+    schedule.every().day.at("09:44").do(check_for_leavers)
     schedule.every().day.at("02:01").do(send_daily_stats)
-    schedule.every().day.at("09:41").do(check_increase_date)
+    schedule.every().day.at("09:45").do(check_increase_date)
     Thread(target=schedule_checker).start()
 
 

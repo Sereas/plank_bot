@@ -8,6 +8,7 @@ from threading import Thread
 from time import sleep
 from classes import User
 
+
 bot = telebot.TeleBot('1088985217:AAHXJF3KofCRj1rkgpRURce8pYl4Ow1Zlu8')
 
 '''# proxy
@@ -45,7 +46,9 @@ def send_daily_stats():
         for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
             check_user = User(user_id=user, chat_id=chat)
             check_user.check_if_user_exists()
-            print('Checker', check_user.vacation is False)
+            member = bot.get_chat_member(chat_id=check_user.chat_id, user_id=check_user.user_id)
+            print('chat', bot.get_chat(check_user.chat_id))
+            print('member:', member)
             if check_user.vacation is False:
                 check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=1)).strftime("%d %b %Y"))
                 message = message + str(check_user.name) + ' - ' + str(check_user.planked_today) + ' \n '
@@ -70,12 +73,28 @@ def check_increase_date():
                         str(check_user.increase_day.strftime("%d %b %Y"))
                 if message != '':
                     bot.send_message(chat, message)
-                    message = ''
+
+
+def check_for_leavers():
+    users_df = pd.read_hdf(users_db_path, key='df')
+    print('Before: ', users_df)
+    for chat in users_df['chat_id'].drop_duplicates():
+        if bot.get_chat(chat).type == 'private':
+            users_df = users_df.drop(users_df.loc[users_df['chat_id'] == chat].index)
+
+        for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
+            if (bot.get_chat_member(chat_id=chat, user_id=user).status == 'left') or (bot.get_chat_member(chat_id=chat, user_id=user).status == 'kicked'):
+                print('I am in left or kicked status')
+                users_df = users_df.drop(users_df.loc[(users_df['chat_id'] == chat) & (users_df['user_id'] == user)].index)
+
+    print('After: ', users_df)
+    users_df.to_hdf(users_db_path, key='df')
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("02:00").do(send_daily_stats)
-    schedule.every().day.at("08:32").do(check_increase_date)
+    schedule.every().day.at("09:30").do(check_for_leavers)
+    schedule.every().day.at("09:31").do(send_daily_stats)
+    schedule.every().day.at("02:05").do(check_increase_date)
     Thread(target=schedule_checker).start()
 
 

@@ -63,7 +63,7 @@ def check_increase_date():
         for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
             check_user = User(user_id=user, chat_id=chat)
             check_user.check_if_user_exists()
-            if check_user.increase_day == datetime.datetime.today().date():
+            if check_user.increase_day <= datetime.datetime.today().date():
                 check_user.change_increase_date()
                 check_user.change_current_time()
                 message = message + check_user.name +\
@@ -102,9 +102,9 @@ if __name__ == "__main__":
 @bot.message_handler(commands=['start'])
 def start_message(message):
     bot.send_message(message.chat.id, 'Hi, plankers! I am very happy to greet you all here! I was created to help you'
-                                      ' track your progress. Right now I am a bit retarded and can not do much, but'
-                                      ' hopefully soon I will be able to remind you about mandatory time increases and'
-                                      ' track who planked each day and who missed, and other stuff like that. Please'
+                                      ' track your progress. I am doing some simple routine stuff like making sure'
+                                      ' everybody planks everyday, nobody forgets about their time increase etc.'
+                                      ' I am almost finished now, but still'
                                       ' do not hesitate to write your suggestions to my creator. May the force to plank'
                                       ' be always with you!')
 

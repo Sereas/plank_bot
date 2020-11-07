@@ -8,8 +8,8 @@ min_plank_time = 135
 users_db_path = '~/plank_bot/users_db.h5'
 logs_db_path = '~/plank_bot/logs_db.h5'
 
-# users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-# logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
+# users_db_path = 'D:/Databases/users_db.h5'
+# logs_db_path = 'D:/Databases/logs_db.h5'
 
 
 class User:
@@ -150,5 +150,13 @@ class User:
             self.vacation = True
         else:
             self.vacation = False
+        self.amend()
+
+    def change_times_missed(self, times=1):
+        if times == 0:
+            self.times_missed = times
+        else:
+            self.times_missed = self.times_missed + times
+
         self.amend()
 

@@ -22,11 +22,11 @@ telebot.apihelper.proxy = {
   'https': 'https://{}:{}@{}:{}'.format(login, pwd, ip, port)
 }'''
 
-users_db_path = '~/plank_bot/users_db.h5'
-logs_db_path = '~/plank_bot/logs_db.h5'
+# users_db_path = '~/plank_bot/users_db.h5'
+# logs_db_path = '~/plank_bot/logs_db.h5'
 
-# users_db_path = 'D:/Python projects/PlankBot/users_db.h5'
-# logs_db_path = 'D:/Python projects/PlankBot/logs_db.h5'
+users_db_path = 'D:/Databases/users_db.h5'
+logs_db_path = 'D:/Databases/logs_db.h5'
 
 print('Bot started')
 global user_to_change
@@ -38,11 +38,11 @@ def schedule_checker():
         sleep(1)
 
 
-def send_daily_stats():
+def send_daily_stats(days=1):
     users_df = pd.read_hdf(users_db_path, key='df')
     for chat in users_df['chat_id'].drop_duplicates():
         message = 'Daily check list as of ' + \
-                  str((datetime.datetime.today().date() - timedelta(days=1)).strftime("%d %b %Y")) + ': \n '
+                  str((datetime.datetime.today().date() - timedelta(days=days)).strftime("%d %b %Y")) + ': \n '
         for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
             check_user = User(user_id=user, chat_id=chat)
             check_user.check_if_user_exists()
@@ -50,10 +50,24 @@ def send_daily_stats():
             print('chat', bot.get_chat(check_user.chat_id))
             print('member:', member)
             if check_user.vacation is False:
-                check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=1)).strftime("%d %b %Y"))
+                check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=days)).strftime("%d %b %Y"))
                 message = message + str(check_user.name) + ' - ' + str(check_user.planked_today) + ' \n '
 
         bot.send_message(chat, message)
+
+
+def check_all_missed_times(chat):
+    users_df = pd.read_hdf(users_db_path, key='df')
+    message = 'Here is the list of all current lazy debtors: ' + ' \n '
+    for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
+        check_user = User(user_id=user, chat_id=chat)
+        check_user.check_if_user_exists()
+        member = bot.get_chat_member(chat_id=check_user.chat_id, user_id=check_user.user_id)
+        print('member:', member.status)
+        if check_user.times_missed > 0:
+            message = message + str(check_user.name) + ' - ' + str(check_user.times_missed) + ' \n '
+
+    bot.send_message(chat, message)
 
 
 def check_increase_date():
@@ -128,7 +142,8 @@ def start_message(message):
                                       'Time increase: ' + str(user.time_increase) + ' seconds \n'
                                       'Increase in days: ' + str(user.increase_in_days) + ' days \n'
                                       'Next increase on: ' + str(user.increase_day) + '\n'
-                                      'Vacation: ' + str(user.vacation))
+                                      'Vacation: ' + str(user.vacation) + '\n'
+                                      'Times missed: ' + str(user.times_missed))
 
 
 @bot.message_handler(commands=['set_increase_time'])
@@ -149,7 +164,7 @@ def start_message(message):
 def start_message(message):
     users = load_chat_users(chat_id=message.chat.id)
     print(users)
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
     for user in users:
         markup.add(user)
     msg = bot.reply_to(message, 'Ok, who is going on vacation??', reply_markup=markup)
@@ -160,51 +175,126 @@ def start_message(message):
 def start_message(message):
     users = load_chat_users(chat_id=message.chat.id)
     print(users)
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
     for user in users:
         markup.add(user)
     msg = bot.reply_to(message, 'Planking together is always more fun ;) Who did you plank with?', reply_markup=markup)
     bot.register_next_step_handler(msg, set_up_planked_with_step)
 
 
+@bot.message_handler(commands=['show_daily_stats'])
+def start_message(message):
+    msg = bot.reply_to(message, 'You want to check daily stats? Ok, how many days back? ')
+    bot.register_next_step_handler(msg, get_daily_stats)
+
+
+@bot.message_handler(commands=['show_all_missed_users'])
+def start_message(message):
+    check_all_missed_times(message.chat.id)
+
+
+@bot.message_handler(commands=['register_missed_day'])
+def start_message(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    print(users)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
+    for user in users:
+        markup.add(user)
+    msg = bot.reply_to(message, 'Looks like somebody missed a day... Shame on them, but hehe, I am richer now) Sooo, who decided to sponsor me?', reply_markup=markup)
+    bot.register_next_step_handler(msg, increase_missed_days)
+
+
+@bot.message_handler(commands=['reset_missed_user'])
+def start_message(message):
+    member_status = bot.get_chat_member(chat_id=message.chat.id, user_id=message.from_user.id)
+    if member_status.status == 'creator' or member_status.status == 'administrator':
+        users = load_chat_users(chat_id=message.chat.id)
+        print(users)
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
+        for user in users:
+            markup.add(user)
+        msg = bot.reply_to(message, 'Somebody paid? Hope you partied hard with that money)', reply_markup=markup)
+        bot.register_next_step_handler(msg, clear_a_name)
+    else:
+        bot.send_message(message.chat.id, 'Sorry, I am afraid only an admin can do that...')
+
+
+def clear_a_name(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    if message.text in users:
+        user_who_missed = User(user_id=users[message.text], chat_id=message.chat.id)
+        user_who_missed.check_if_user_exists()
+        user_who_missed.change_times_missed(times=0)
+        bot.send_message(message.chat.id, 'Done. The user now has ' + str(user_who_missed.times_missed) + ' misses.')
+    else:
+        bot.send_message(message.chat.id, 'You could not have collected money from him, because he is not in our group!')
+
+
+def increase_missed_days(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    if message.text in users:
+        user_who_missed = User(user_id=users[message.text], chat_id=message.chat.id)
+        user_who_missed.check_if_user_exists()
+        user_who_missed.change_times_missed()
+        bot.send_message(message.chat.id, 'Done. The user now has ' + str(user_who_missed.times_missed) + ' misses.')
+    else:
+        bot.send_message(message.chat.id, 'Stop messing with me, please! There is no such user')
+
+
+def get_daily_stats(message):
+    try:
+        var = int(message.text)
+
+        if isinstance(var, int):
+            if var > 0:
+                send_daily_stats(days=var)
+            else:
+                bot.send_message(message.chat.id, 'I am afraid only positive integers will do the trick.')
+    except ValueError:
+        bot.send_message(message.chat.id, 'You idiot, it is not an integer! Try again, moron')
+
+
 def set_up_planked_with_step(message):
     users = load_chat_users(chat_id=message.chat.id)
-    user_to_change_plank = User(user_id=users[message.text], chat_id=message.chat.id)
-    user_to_change_plank.check_if_user_exists()
-    user_to_check = User(user_id=message.from_user.id, chat_id=message.chat.id)
-    user_to_check.check_if_user_exists()
+    if message.text in users:
+        user_to_change_plank = User(user_id=users[message.text], chat_id=message.chat.id)
+        user_to_change_plank.check_if_user_exists()
+        user_to_check = User(user_id=message.from_user.id, chat_id=message.chat.id)
+        user_to_check.check_if_user_exists()
 
-    if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
-        user_to_check.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
-        if user_to_check.planked_today is True:
-            user_to_change_plank.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
-            if user_to_change_plank.planked_today is False:
-                bot.send_message(message.chat.id,
-                                'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
-                user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+        if int(datetime.datetime.fromtimestamp(message.date).strftime("%H")) > 2:
+            user_to_check.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+            if user_to_check.planked_today is True:
+                user_to_change_plank.check_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+                if user_to_change_plank.planked_today is False:
+                    bot.send_message(message.chat.id,
+                                    'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
+                    user_to_change_plank.write_planked_today(datetime.datetime.fromtimestamp(message.date).strftime("%d %b %Y"))
+                else:
+                    bot.send_message(message.chat.id, 'I see that this user already planked today. '
+                                    'Did you get drunk together and you forgot that you have already tagged your friend?)')
             else:
-                bot.send_message(message.chat.id, 'I see that this user already planked today. '
-                                'Did you get drunk together and you forgot that you have already tagged your friend?)')
+                bot.send_message(message.chat.id,
+                                 'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
         else:
-            bot.send_message(message.chat.id,
-                             'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
+            user_to_check.check_planked_today(
+                (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+            if user_to_check.planked_today is True:
+                user_to_change_plank.check_planked_today(
+                (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+                if user_to_change_plank.planked_today is False:
+                    bot.send_message(message.chat.id,
+                                    'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
+                    user_to_change_plank.write_planked_today(
+                        (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
+                else:
+                    bot.send_message(message.chat.id, 'I see that this user already planked today. '
+                                    'Did you get drunk together and you forgot that you have already tagged your friend?)')
+            else:
+                bot.send_message(message.chat.id,
+                                 'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
     else:
-        user_to_check.check_planked_today(
-            (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
-        if user_to_check.planked_today is True:
-            user_to_change_plank.check_planked_today(
-            (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
-            if user_to_change_plank.planked_today is False:
-                bot.send_message(message.chat.id,
-                                'Great! Hope you and ' + str(user_to_change_plank.name) + ' had a wonderful time!')
-                user_to_change_plank.write_planked_today(
-                    (datetime.datetime.fromtimestamp(message.date) - timedelta(days=1)).strftime("%d %b %Y"))
-            else:
-                bot.send_message(message.chat.id, 'I see that this user already planked today. '
-                                'Did you get drunk together and you forgot that you have already tagged your friend?)')
-        else:
-            bot.send_message(message.chat.id,
-                             'Hmmm... It looks like you have not planked yourself today.. Do not believe you.')
+        bot.send_message(message.chat.id, 'Bloody hell!!! There is no such user. Start over.')
 
 
 def find_users_to_set_up_time_to_step(message):
@@ -271,12 +361,18 @@ def set_up_increase_periods_step(message):
 
 def set_up_vacation_step(message):
     global user_to_change
-    user_to_change = message.text
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-    markup.add('True', 'False')
-    bot.send_message(message.chat.id, 'Ok, will amend vacation status for ' + str(user_to_change) + '.')
-    msg = bot.reply_to(message,  'Which status is it?', reply_markup=markup)
-    bot.register_next_step_handler(msg, set_up_vacation_step2)
+    # check if user exists
+    users = load_chat_users(chat_id=message.chat.id)
+    if message.text in users:
+        print('Works')
+        user_to_change = message.text
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
+        markup.add('On vacation/ill', 'Not on vacation/ill')
+        bot.send_message(message.chat.id, 'Ok, will amend vacation status for ' + str(user_to_change) + '.')
+        msg = bot.reply_to(message,  'Which status is it?', reply_markup=markup)
+        bot.register_next_step_handler(msg, set_up_vacation_step2)
+    else:
+        bot.send_message(message.chat.id, 'Fuck off, there is no such user')
 
 
 def set_up_vacation_step2(message):
@@ -284,9 +380,16 @@ def set_up_vacation_step2(message):
     users = load_chat_users(chat_id=message.chat.id)
     user = User(user_id=users[user_to_change], chat_id=message.chat.id)
     user.check_if_user_exists()
-    user.change_vacation(value=message.text)
-    bot.send_message(message.chat.id, 'Done')
-    user_to_change = ""
+    if message.text == "On vacation/ill" or message.text == "Not on vacation/ill":
+        if message.text == "On vacation/ill":
+            status = 'True'
+        else:
+            status = 'False'
+        user.change_vacation(value=status)
+        bot.send_message(message.chat.id, 'Done. The user is now ' + str(message.text).lower())
+        user_to_change = ""
+    else:
+        bot.send_message(message.chat.id, 'In case noone told you - you can not write an essay here, use suggested options.')
 
 
 def load_chat_users(chat_id):

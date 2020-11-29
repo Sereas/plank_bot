@@ -76,6 +76,8 @@ class User:
                      'increase_day'] = self.increase_day
         users_df.loc[(users_df['user_id'] == self.user_id) & (users_df['chat_id'] == self.chat_id),
                      'vacation'] = self.vacation
+        users_df.loc[(users_df['user_id'] == self.user_id) & (users_df['chat_id'] == self.chat_id),
+                     'name'] = self.name
         '''save'''
         users_df.to_hdf(users_db_path, key='df')
 
@@ -158,5 +160,9 @@ class User:
         else:
             self.times_missed = self.times_missed + times
 
+        self.amend()
+
+    def change_name(self, name):
+        self.name = str(name)
         self.amend()
 

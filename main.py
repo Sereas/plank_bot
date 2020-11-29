@@ -44,11 +44,16 @@ def send_daily_stats(days=1):
         message = 'Daily check list as of ' + \
                   str((datetime.datetime.today().date() - timedelta(days=days)).strftime("%d %b %Y")) + ': \n '
         for user in users_df.loc[users_df['chat_id'] == chat]['user_id']:
+            print('Showing current user: ' + str(user))
             check_user = User(user_id=user, chat_id=chat)
             check_user.check_if_user_exists()
-            member = bot.get_chat_member(chat_id=check_user.chat_id, user_id=check_user.user_id)
-            print('chat', bot.get_chat(check_user.chat_id))
-            print('member:', member)
+            try:
+                member = bot.get_chat_member(chat_id=check_user.chat_id, user_id=check_user.user_id)
+                print('chat', bot.get_chat(check_user.chat_id))
+                print('member:', member)
+            except:
+                print('ooops')
+
             if check_user.vacation is False:
                 check_user.check_planked_today((datetime.datetime.today().date() - timedelta(days=days)).strftime("%d %b %Y"))
                 message = message + str(check_user.name) + ' - ' + str(check_user.planked_today) + ' \n '
@@ -219,6 +224,41 @@ def start_message(message):
         bot.send_message(message.chat.id, 'Sorry, I am afraid only an admin can do that...')
 
 
+@bot.message_handler(commands=['rename_user'])
+def start_message(message):
+    users = load_chat_users(chat_id=message.chat.id)
+    print(users)
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, selective=True)
+    for user in users:
+        markup.add(user)
+    msg = bot.reply_to(message, "You do not like someone's name? Great, let's change it! Which name shall be changed?", reply_markup=markup)
+    bot.register_next_step_handler(msg, change_name_step)
+
+
+def change_name_step(message):
+    global user_to_change
+    users = load_chat_users(chat_id=message.chat.id)
+    markup = types.ReplyKeyboardRemove()
+    if message.text in users:
+        user_to_change = message.text
+        msg= bot.send_message(message.chat.id, 'Okey dokey, how shall we call ' + user_to_change + ' from now on?' , reply_markup=markup)
+        bot.register_next_step_handler(msg, change_name_step2)
+    else:
+        bot.send_message(message.chat.id, 'Please buy glasses and read my questions carefully! You can only select existing user!', reply_markup=markup)
+
+
+def change_name_step2(message):
+    global user_to_change
+    print(user_to_change)
+    users = load_chat_users(chat_id=message.chat.id)
+    user = User(user_id=users[user_to_change], chat_id=message.chat.id)
+    user.check_if_user_exists()
+    markup = types.ReplyKeyboardRemove()
+    user.change_name(name=message.text)
+    bot.send_message(message.chat.id, 'I hereby welcome the reborn user, that from now on shall be known as ' + user.name + '!', reply_markup=markup)
+    user_to_change = ""
+
+
 def clear_a_name(message):
     users = load_chat_users(chat_id=message.chat.id)
     markup = types.ReplyKeyboardRemove()
@@ -375,7 +415,7 @@ def set_up_vacation_step(message):
         msg = bot.reply_to(message,  'Which status is it?', reply_markup=markup)
         bot.register_next_step_handler(msg, set_up_vacation_step2)
     else:
-        bot.send_message(message.chat.id, 'Fuck off, there is no such user')
+        bot.send_message(message.chat.id, 'Sorry, there is no such user')
 
 
 def set_up_vacation_step2(message):
